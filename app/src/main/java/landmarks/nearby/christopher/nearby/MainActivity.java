@@ -2,7 +2,6 @@ package landmarks.nearby.christopher.nearby;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -25,10 +24,14 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 public class MainActivity extends AppCompatActivity {
 
     static LocationManager myLocationManager;
     static LocationCallback myLocationCallback;
+    static boolean gotGPSLocation = false;
 
 
     @SuppressLint("MissingPermission")
@@ -38,18 +41,41 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
 
-        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+
 
         if(!havePermissions()){
             return;
         }
 
+        getLocationCustom();
+
+
+    }
+
+    public boolean havePermissions(){
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return false;
+        }
+        return true;
+    }
+
+    @SuppressLint("MissingPermission")
+    public void getLocationCustom(){
         //Use GPS to get location
+        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
                 Toast.makeText(getApplicationContext(), "Location Long: " + location.getLongitude() + " Location Lat: "
-                + location.getLatitude(), Toast.LENGTH_LONG).show();
+                        + location.getLatitude(), Toast.LENGTH_LONG).show();
 
             }
 
@@ -69,20 +95,39 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        Timer waitForNoGPS = new Timer();
+        waitForNoGPS.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                if(!gotGPSLocation){
+                    LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
+                    locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, new LocationListener() {
+                        @Override
+                        public void onLocationChanged(Location location) {
+                            Toast.makeText(getApplicationContext(), "Location Long: " + location.getLongitude() + " Location Lat: "
+                                    + location.getLatitude(), Toast.LENGTH_LONG).show();
+
+                        }
+
+                        @Override
+                        public void onStatusChanged(String s, int i, Bundle bundle) {
+
+                        }
+
+                        @Override
+                        public void onProviderEnabled(String s) {
+
+                        }
+
+                        @Override
+                        public void onProviderDisabled(String s) {
+
+                        }
+                    });
+                }
+            }
+        },0,4000);
     }
 
-    public boolean havePermissions(){
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return false;
-        }
-        return true;
-    }
 }
